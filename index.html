@@ -77,6 +77,7 @@
   .topbar {
     display:flex;
     align-items:center;
+    flex-wrap: wrap;
     gap:10px;
     margin-bottom:10px;
   }
@@ -113,6 +114,13 @@
     color:#d73636;
     font-size:.9rem;
   }
+
+  /* --- STYLE PDF / IMPRESSION --- */
+  @media print {
+    body { background:white; }
+    header, .card-grid, .btn { display:none !important; }
+    .section { display:block !important; }
+  }
 </style>
 </head>
 
@@ -145,22 +153,31 @@
     <div class="topbar">
       <button class="btn" onclick="addContact()">Ajouter un contact</button>
       <input id="searchContact" placeholder="Rechercher…" oninput="renderContacts()" />
+      <button class="btn" onclick="exportPDF('contacts')">Exporter PDF</button>
     </div>
     <div id="contactList" class="list"></div>
   </div>
 
   <!-- RDV -->
   <div id="rdv" class="section">
-    <button class="btn" onclick="addRdv()">Ajouter un rendez-vous</button>
+    <div class="topbar">
+      <button class="btn" onclick="addRdv()">Ajouter un rendez-vous</button>
+      <button class="btn" onclick="exportPDF('rdv')">Exporter PDF</button>
+    </div>
     <div id="rdvList" class="list"></div>
   </div>
 
   <!-- SPECTACLES -->
   <div id="spectacles" class="section">
-    <button class="btn" onclick="addShow()">Ajouter un spectacle</button>
+    <div class="topbar">
+      <button class="btn" onclick="addShow()">Ajouter un spectacle</button>
+      <button class="btn" onclick="exportPDF('spectacles')">Exporter PDF</button>
+    </div>
+
     <div id="todayBanner" class="notice" style="display:none;font-weight:bold;">
       Spectacle aujourd’hui !
     </div>
+
     <div id="showList" class="list"></div>
   </div>
 </div>
@@ -313,6 +330,12 @@ function addShow(){
 
 function delShow(i){
   const arr = load("shows"); arr.splice(i,1); save("shows",arr); renderShows();
+}
+
+/* -------- EXPORT PDF -------- */
+function exportPDF(sectionId) {
+  openSection(sectionId);
+  setTimeout(() => { window.print(); }, 200);
 }
 </script>
 
