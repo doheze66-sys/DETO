@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Registre — Detonateur</title>
+
+<style>
+  body {
+    margin: 0;
+    font-family: Arial, Helvetica, sans-serif;
+    background: linear-gradient(#bde9ff, #9fdfff);
+    color: #222;
+  }
+
+  header {
+    text-align: center;
+    padding: 20px 10px;
+    font-weight: bold;
+  }
+
+  h1 {
+    margin: 0;
+    font-size: 1.4rem;
+    letter-spacing: 1px;
+  }
+
+  .card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit,minmax(200px,1fr));
+    gap: 16px;
+    padding: 18px;
+  }
+
+  .card {
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 8px 16px rgba(0,0,0,.08);
+    padding: 16px;
+    cursor: pointer;
+    transition: transform .15s, box-shadow .15s;
+  }
+
+  .card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 24px rgba(0,0,0,.12);
+  }
+
+  .btn {
+    background: #d73636;
+    color: white;
+    border: none;
+    padding: 10px 14px;
+    border-radius: 10px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: transform .12s;
+  }
+
+  .btn:active { transform: scale(.96); }
+
+  .clock {
+    text-align:center;
+    font-size: 2.2rem;
+    margin-top: 10px;
+    font-weight: bold;
+  }
+
+  .section {
+    display: none;
+    padding: 18px;
+  }
+
+  .section.active { display:block; animation: fade .25s ease; }
+  @keyframes fade { from{opacity:0;transform:translateY(6px)} }
+
+  .topbar {
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-bottom:10px;
+  }
+
+  .list { margin-top: 10px; }
+  .item {
+    background:white;
+    border-radius:12px;
+    padding:10px;
+    margin-bottom:8px;
+    box-shadow:0 4px 10px rgba(0,0,0,.05);
+  }
+
+  /* écran mot de passe */
+  .lock-screen {
+    height: 100vh;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    align-items:center;
+    gap:14px;
+    text-align:center;
+  }
+
+  input, textarea, select {
+    padding:8px;
+    border-radius:10px;
+    border:1px solid #ccc;
+    width:100%;
+    box-sizing:border-box;
+  }
+
+  .notice {
+    color:#d73636;
+    font-size:.9rem;
+  }
+</style>
+</head>
+
+<body>
+
+<!-- ÉCRAN MOT DE PASSE -->
+<div id="lock" class="lock-screen">
+  <h2>BIENVENU SUR LE SITE DE DETONATEUR LE DANSEUR</h2>
+  <p>Entrer le mot de passe</p>
+  <input type="password" id="passwordInput" placeholder="Mot de passe" />
+  <button class="btn" onclick="login()">Entrer</button>
+  <div id="pwdMsg" class="notice"></div>
+</div>
+
+<!-- TABLEAU DE BORD -->
+<div id="app" style="display:none;">
+  <header>
+    <h1>Bienvenu sur le site de DETONATEUR LE DANSEUR</h1>
+    <div class="clock" id="clock"></div>
+  </header>
+
+  <div class="card-grid">
+    <div class="card" onclick="openSection('contacts')">Contacts</div>
+    <div class="card" onclick="openSection('rdv')">Rendez-vous</div>
+    <div class="card" onclick="openSection('spectacles')">Spectacles</div>
+  </div>
+
+  <!-- CONTACTS -->
+  <div id="contacts" class="section">
+    <div class="topbar">
+      <button class="btn" onclick="addContact()">Ajouter un contact</button>
+      <input id="searchContact" placeholder="Rechercher…" oninput="renderContacts()" />
+    </div>
+    <div id="contactList" class="list"></div>
+  </div>
+
+  <!-- RDV -->
+  <div id="rdv" class="section">
+    <button class="btn" onclick="addRdv()">Ajouter un rendez-vous</button>
+    <div id="rdvList" class="list"></div>
+  </div>
+
+  <!-- SPECTACLES -->
+  <div id="spectacles" class="section">
+    <button class="btn" onclick="addShow()">Ajouter un spectacle</button>
+    <div id="todayBanner" class="notice" style="display:none;font-weight:bold;">
+      Spectacle aujourd’hui !
+    </div>
+    <div id="showList" class="list"></div>
+  </div>
+</div>
+
+<script>
+/* -------- MOT DE PASSE -------- */
+const PASSWORD = "bonjour2026";
+
+function login() {
+  const val = document.getElementById("passwordInput").value;
+  if (val === PASSWORD) {
+    localStorage.setItem("logged", "1");
+    document.getElementById("lock").style.display = "none";
+    document.getElementById("app").style.display = "block";
+  } else {
+    document.getElementById("pwdMsg").innerText = "Mot de passe incorrect.";
+  }
+}
+
+if (localStorage.getItem("logged") === "1") {
+  document.getElementById("lock").style.display = "none";
+  document.getElementById("app").style.display = "block";
+}
+
+/* -------- HORLOGE -------- */
+function tick() {
+  document.getElementById("clock").innerText =
+    new Date().toLocaleString("fr-FR", { dateStyle:"full", timeStyle:"medium" });
+}
+setInterval(tick, 1000); tick();
+
+/* -------- NAVIGATION -------- */
+function openSection(id) {
+  document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+  if (id === "spectacles") renderShows();
+  if (id === "contacts") renderContacts();
+  if (id === "rdv") renderRdv();
+}
+
+/* -------- OUTILS STORAGE -------- */
+const load = (k) => JSON.parse(localStorage.getItem(k) || "[]");
+const save = (k,v) => localStorage.setItem(k, JSON.stringify(v));
+
+/* -------- CONTACTS -------- */
+function renderContacts() {
+  const q = document.getElementById("searchContact").value?.toLowerCase() || "";
+  const list = load("contacts").filter(c =>
+    !q || c.name.toLowerCase().includes(q) || (c.phone||"").includes(q)
+  );
+  const el = document.getElementById("contactList");
+  el.innerHTML = list.map((c,i)=>`
+    <div class="item">
+      <strong>${c.name}</strong><br>
+      Tel: ${c.phone||"-"} — Email: ${c.email||"-"}<br>
+      <small>${c.notes||""}</small><br>
+      <button class="btn" onclick="editContact(${i})">Modifier</button>
+      <button class="btn" onclick="delContact(${i})">Supprimer</button>
+    </div>`).join("");
+}
+
+function addContact() {
+  const name = prompt("Nom du contact :");
+  if(!name) return;
+  const phone = prompt("Téléphone :")||"";
+  const email = prompt("Email :")||"";
+  const notes = prompt("Notes :")||"";
+  const arr = load("contacts");
+  arr.push({name,phone,email,notes});
+  save("contacts",arr);
+  renderContacts();
+}
+
+function editContact(i){
+  const arr = load("contacts");
+  const c = arr[i];
+  c.name = prompt("Nom :", c.name)||c.name;
+  c.phone = prompt("Téléphone :", c.phone)||c.phone;
+  c.email = prompt("Email :", c.email)||c.email;
+  c.notes = prompt("Notes :", c.notes)||c.notes;
+  save("contacts",arr); renderContacts();
+}
+
+function delContact(i){
+  const arr = load("contacts"); arr.splice(i,1); save("contacts",arr); renderContacts();
+}
+
+/* -------- RDV -------- */
+function renderRdv(){
+  const arr = load("rdv");
+  document.getElementById("rdvList").innerHTML = arr.map((r,i)=>`
+    <div class="item">
+      <strong>${r.date} — ${r.time}</strong><br>
+      Lieu: ${r.place||"-"}<br>
+      Notes: ${r.notes||""}<br>
+      <span>${r.done?"✔️ terminé":"⏳ à faire"}</span><br>
+      <button class="btn" onclick="toggleRdv(${i})">Terminer</button>
+      <button class="btn" onclick="delRdv(${i})">Supprimer</button>
+    </div>`).join("");
+}
+
+function addRdv(){
+  const date = prompt("Date (YYYY-MM-DD) :");
+  if(!date) return;
+  const time = prompt("Heure :")||"";
+  const place = prompt("Lieu :")||"";
+  const notes = prompt("Notes :")||"";
+  const arr = load("rdv");
+  arr.push({date,time,place,notes,done:false});
+  save("rdv",arr); renderRdv();
+}
+
+function toggleRdv(i){
+  const arr = load("rdv"); arr[i].done = !arr[i].done; save("rdv",arr); renderRdv();
+}
+
+function delRdv(i){
+  const arr = load("rdv"); arr.splice(i,1); save("rdv",arr); renderRdv();
+}
+
+/* -------- SPECTACLES -------- */
+function renderShows(){
+  const arr = load("shows");
+  const today = new Date().toISOString().slice(0,10);
+  const banner = document.getElementById("todayBanner");
+  banner.style.display = arr.some(s=>s.date===today) ? "block" : "none";
+
+  document.getElementById("showList").innerHTML = arr.map((s,i)=>`
+    <div class="item">
+      <strong>${s.name}</strong> — ${s.date} ${s.time}<br>
+      Lieu: ${s.place||"-"}<br>
+      Matériel: ${s.material||"-"}<br>
+      Notes: ${s.notes||""}<br>
+      <button class="btn" onclick="delShow(${i})">Supprimer</button>
+    </div>`).join("");
+}
+
+function addShow(){
+  const name = prompt("Nom du spectacle :");
+  if(!name) return;
+  const date = prompt("Date (YYYY-MM-DD) :")||"";
+  const time = prompt("Heure :")||"";
+  const place = prompt("Lieu :")||"";
+  const material = prompt("Matériel à préparer :")||"";
+  const notes = prompt("Notes :")||"";
+  const arr = load("shows");
+  arr.push({name,date,time,place,material,notes});
+  save("shows",arr); renderShows();
+}
+
+function delShow(i){
+  const arr = load("shows"); arr.splice(i,1); save("shows",arr); renderShows();
+}
+</script>
+
+</body>
+</html>
